@@ -52,6 +52,16 @@ The current frontend includes:
 - Expanded settings for exchange coverage, fee/slippage model, refresh interval, paper trading, smart alerts, anomaly detection, whale watch, and execution safety.
 - Live Agent chatbot that answers app and market questions from current quotes, arbitrage routes, AI predictions, exchange coverage, logs, history, and user settings.
 
+## Screenshots
+
+### Dashboard
+
+![Intelli-Crypto dashboard](docs/screenshots/dashboard.png)
+
+### Market Live
+
+![Market Live quote matrix and route ranking](docs/screenshots/market-live.png)
+
 ## Backend Environment Setup
 
 ```bash
@@ -83,4 +93,4 @@ ws://localhost:8000/ws/arbitrage/
 
 - Exchange calls use `ccxt.async_support` and `asyncio.gather` to avoid blocking.
 - WebSocket publishing uses Django Channels and Redis.
-- The first engine supports `BTC/USDT` and `ETH/USDT` across Binance, Kraken, and Coinbase.
+- The arbitrage engine supports `BTC/USDT` and `ETH/USDT` across Binance, Kraken, Coinbase, OKX, Bybit, and KuCoin.
