@@ -1,0 +1,7 @@
+Django==5.1.4
+channels==4.2.0
+channels-redis==4.2.1
+ccxt==4.4.43
+psycopg[binary]==3.2.3
+scikit-learn==1.6.0
+numpy==2.2.1
