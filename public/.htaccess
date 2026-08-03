@@ -2,6 +2,9 @@
   RewriteEngine On
   RewriteBase /
 
+  # Let cPanel's Passenger application handle the Django backend mount.
+  RewriteRule ^backend(?:/|$) - [L]
+
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
