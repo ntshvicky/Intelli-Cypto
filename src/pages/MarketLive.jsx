@@ -10,15 +10,19 @@ export default function MarketLive() {
   const { user, updateUser } = useAuth();
   const { quotes, opportunities, source, status, mode, refreshMs } = useMarketData();
 
-  const toggleMode = () => {
-    updateUser({ marketDataMode: mode === "Live" ? "Demo" : "Live" });
+  const toggleMode = async () => {
+    try {
+      await updateUser({ marketDataMode: mode === "Live" ? "Demo" : "Live" });
+    } catch {
+      // Settings remains unchanged when persistence fails.
+    }
   };
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <p className="text-sm text-cyber">Demo and live market data</p>
+          <p className="text-sm text-cyber">{user.isDemo ? "Browser demo workspace" : "MySQL workspace"} · Demo and live market data</p>
           <h1 className="mt-1 text-3xl font-semibold">Market Live</h1>
         </div>
         <div className="flex flex-wrap gap-3">

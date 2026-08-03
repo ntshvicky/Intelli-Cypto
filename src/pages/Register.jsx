@@ -19,6 +19,8 @@ const initialForm = {
 
 export default function Register() {
   const [form, setForm] = useState(initialForm);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -33,10 +35,18 @@ export default function Register() {
     }));
   };
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
-    register(form);
-    navigate("/app");
+    setSubmitting(true);
+    setError("");
+    try {
+      await register(form);
+      navigate("/app");
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -81,7 +91,10 @@ export default function Register() {
           I accept trading risk disclosures and platform terms.
         </label>
 
-        <button className="mt-6 w-full rounded bg-mint px-5 py-3 font-semibold text-slate-950">Create account</button>
+        {error && <p className="mt-5 rounded border border-danger/30 bg-danger/10 p-3 text-sm text-danger">{error}</p>}
+        <button disabled={submitting} className="mt-6 w-full rounded bg-mint px-5 py-3 font-semibold text-slate-950 disabled:opacity-60">
+          {submitting ? "Creating MySQL account…" : "Create account"}
+        </button>
         <p className="mt-4 text-center text-sm text-slate-400">
           Already registered? <Link to="/login" className="text-cyber">Log in</Link>
         </p>

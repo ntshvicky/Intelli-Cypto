@@ -1,14 +1,23 @@
 import { Bot, DatabaseZap, Send, Sparkles, UserRound } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { buildAgentContext, askLiveAgent, starterPrompts } from "../services/liveAgent.js";
 import { useMarketData } from "../hooks/useMarketData.js";
+import { useAIPredictions } from "../hooks/useAIPredictions.js";
+import { fetchSystemLogs, fetchTradeHistory } from "../services/activityStore.js";
 import { useAuth } from "../state/AuthContext.jsx";
 
 export default function LiveAgentChat() {
   const { user } = useAuth();
   const marketData = useMarketData();
+  const { predictions } = useAIPredictions(marketData.mode);
+  const [activity, setActivity] = useState(() => user.isDemo
+    ? { history: undefined, logs: undefined }
+    : { history: [], logs: [] });
   const inputRef = useRef(null);
-  const context = useMemo(() => buildAgentContext({ user, ...marketData }), [user, marketData]);
+  const context = useMemo(
+    () => buildAgentContext({ user, ...marketData, predictions, ...activity }),
+    [user, marketData, predictions, activity]
+  );
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState(() => [
     {
@@ -23,6 +32,24 @@ export default function LiveAgentChat() {
       createdAt: new Date().toLocaleTimeString(),
     },
   ]);
+
+  useEffect(() => {
+    if (user.isDemo) {
+      setActivity({ history: undefined, logs: undefined });
+      return;
+    }
+    let cancelled = false;
+    Promise.all([fetchTradeHistory(), fetchSystemLogs()])
+      .then(([history, logs]) => {
+        if (!cancelled) setActivity({ history, logs });
+      })
+      .catch(() => {
+        if (!cancelled) setActivity({ history: [], logs: [] });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user.isDemo]);
 
   const sendQuestion = (question) => {
     const cleanQuestion = question.trim();
@@ -64,6 +91,7 @@ export default function LiveAgentChat() {
             <AgentStat label="Source" value={marketData.source} />
             <AgentStat label="Quotes" value={marketData.quotes.length} />
             <AgentStat label="Routes" value={marketData.opportunities.length} />
+            <AgentStat label="AI models" value={predictions.length} />
             <AgentStat label="Enabled exchanges" value={user.exchanges.length} />
           </div>
         </div>

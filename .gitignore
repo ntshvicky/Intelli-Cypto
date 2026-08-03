@@ -4,6 +4,7 @@ dist/
 .DS_Store
 
 backend/.env
+backend/.venv/
 backend/**/__pycache__/
 *.pyc
 

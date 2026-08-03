@@ -1,4 +1,14 @@
 import { demoExchangeQuotes } from "../data/mockData.js";
+import { apiRequest } from "./api.js";
+
+const exchangeNames = {
+  binance: "Binance",
+  kraken: "Kraken",
+  coinbase: "Coinbase",
+  okx: "OKX",
+  bybit: "Bybit",
+  kucoin: "KuCoin",
+};
 
 const liveEndpoints = [
   {
@@ -44,6 +54,15 @@ export async function fetchMarketQuotes({ mode, enabledExchanges }) {
     return withScores(demoExchangeQuotes.filter((quote) => enabledExchanges.includes(quote.exchange)), "Demo");
   }
 
+  try {
+    const backendQuotes = await fetchBackendQuotes(enabledExchanges);
+    if (backendQuotes.length) {
+      return withScores(backendQuotes, "Live · CCXT backend");
+    }
+  } catch {
+    // The public browser adapters below keep Live mode useful if Django is offline.
+  }
+
   const startedAt = performance.now();
   const responses = await Promise.allSettled(
     liveEndpoints
@@ -78,6 +97,32 @@ export async function fetchMarketQuotes({ mode, enabledExchanges }) {
   );
 
   return withScores([...liveQuotes, ...fallbackQuotes], liveQuotes.length ? "Live + fallback" : "Demo fallback");
+}
+
+async function fetchBackendQuotes(enabledExchanges) {
+  const exchangeIds = enabledExchanges.map((name) => name.toLowerCase()).join(",");
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+  try {
+    const startedAt = performance.now();
+    const payload = await apiRequest(`/market/snapshot/?exchanges=${encodeURIComponent(exchangeIds)}`, {
+      signal: controller.signal,
+    });
+    const latency = Math.round(performance.now() - startedAt);
+    return (payload.tickers || [])
+      .filter((ticker) => Number.isFinite(ticker.bid) && Number.isFinite(ticker.ask))
+      .map((ticker) => ({
+        exchange: exchangeNames[ticker.exchange] || ticker.exchange,
+        pair: ticker.symbol,
+        bid: Number(ticker.bid),
+        ask: Number(ticker.ask),
+        volume: ticker.quote_volume,
+        change: ticker.percentage,
+        latency,
+      }));
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }
 
 export function findArbitrageOpportunities(quotes, settings = {}) {

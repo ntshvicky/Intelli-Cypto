@@ -8,6 +8,7 @@ export default function Settings() {
   const { user, updateUser } = useAuth();
   const [form, setForm] = useState(user);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   const update = (field, value) => {
     setSaved(false);
@@ -24,10 +25,15 @@ export default function Settings() {
     }));
   };
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
-    updateUser(form);
-    setSaved(true);
+    setError("");
+    try {
+      await updateUser(form);
+      setSaved(true);
+    } catch (requestError) {
+      setError(requestError.message);
+    }
   };
 
   return (
@@ -62,7 +68,7 @@ export default function Settings() {
             <Select label="Execution preset" value={form.executionPreset || "Balanced"} onChange={(value) => update("executionPreset", value)} options={["Conservative", "Balanced", "Aggressive", "Custom"]} />
           </div>
           <p className="mt-4 text-sm text-slate-400">
-            Live mode uses public market endpoints for supported venues and falls back to demo quotes when a browser request is blocked or unavailable.
+            Live mode uses the Django CCXT market service first, then public browser endpoints, and finally clearly labeled demo fallback quotes if live sources are unavailable.
           </p>
         </Panel>
 
@@ -95,13 +101,14 @@ export default function Settings() {
             <Toggle label="Two-factor authentication" checked={Boolean(form.twoFactor)} onChange={(value) => update("twoFactor", value)} />
           </div>
           <div className="mt-5 rounded border border-gold/25 bg-gold/10 p-4 text-sm leading-6 text-gold">
-            Live execution remains manual in this demo. In production, API key vaulting, withdrawal locks, allowlisted IPs, and per-exchange kill switches are required before real orders.
+            Execution remains paper-only. API key vaulting, withdrawal locks, allowlisted IPs, and per-exchange kill switches are required before real-money orders can be enabled safely.
           </div>
         </Panel>
 
         <div className="flex items-center gap-3">
           <button className="rounded bg-cyber px-5 py-3 font-semibold text-slate-950">Save settings</button>
-          {saved && <span className="text-sm text-mint">Saved</span>}
+          {saved && <span className="text-sm text-mint">{user.isDemo ? "Saved in this browser" : "Saved to MySQL"}</span>}
+          {error && <span className="text-sm text-danger">{error}</span>}
         </div>
       </form>
     </div>

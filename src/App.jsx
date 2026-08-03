@@ -14,7 +14,10 @@ import MarketLive from "./pages/MarketLive.jsx";
 import Agent from "./pages/Agent.jsx";
 
 function Protected({ children }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) {
+    return <div className="grid min-h-screen place-items-center text-cyber">Connecting to Intelli-Crypto…</div>;
+  }
   return user ? children : <Navigate to="/login" replace />;
 }
 

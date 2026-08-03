@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 
+import asyncio
+
+import ccxt.async_support as ccxt
 import numpy as np
 
 
@@ -39,6 +42,7 @@ class CryptoAI:
             "action": prediction.action,
             "confidence": prediction.confidence,
             "target_price": round(prediction.target_price, 8),
+            "rsi": round(rsi, 2),
         }
 
     def _rsi(self, prices: np.ndarray, period: int = 14) -> float:
@@ -53,3 +57,32 @@ class CryptoAI:
 
         rs = avg_gain / avg_loss
         return float(100 - (100 / (1 + rs)))
+
+
+async def live_predictions(exchange_id: str = "kraken") -> list[dict]:
+    exchange_class = getattr(ccxt, exchange_id)
+    exchange = exchange_class({"enableRateLimit": True})
+    symbols = ("BTC/USDT", "ETH/USDT", "SOL/USDT")
+
+    async def analyze_symbol(symbol: str):
+        try:
+            candles = await exchange.fetch_ohlcv(symbol, timeframe="5m", limit=100)
+            prices = [float(candle[4]) for candle in candles]
+            if len(prices) < 100:
+                return None
+            result = CryptoAI().analyze(prices)
+            return {
+                "symbol": symbol,
+                **result,
+                "horizon": "5m · 100 candles",
+                "last_price": prices[-1],
+                "source": exchange_id,
+            }
+        except Exception:
+            return None
+
+    try:
+        results = await asyncio.gather(*(analyze_symbol(symbol) for symbol in symbols))
+        return [result for result in results if result is not None]
+    finally:
+        await exchange.close()

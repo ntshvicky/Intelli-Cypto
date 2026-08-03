@@ -18,7 +18,7 @@ export const starterPrompts = [
   "What features should we build next?",
 ];
 
-export function buildAgentContext({ user, quotes, opportunities, source, status, mode }) {
+export function buildAgentContext({ user, quotes, opportunities, source, status, mode, predictions, history, logs }) {
   return {
     user,
     quotes,
@@ -28,12 +28,12 @@ export function buildAgentContext({ user, quotes, opportunities, source, status,
     mode,
     exchanges: exchangeCatalog,
     coins: marketCoins,
-    predictions: aiPredictions,
+    predictions: predictions ?? aiPredictions,
     suggestions: aiSuggestions,
     riskChecks: aiRiskChecks,
     featureIdeas: intelligentFeatureIdeas,
-    history: historyRows,
-    logs: logRows,
+    history: history ?? historyRows,
+    logs: logs ?? logRows,
     generatedAt: new Date().toLocaleTimeString(),
   };
 }
@@ -43,7 +43,7 @@ export function askLiveAgent(question, context) {
   const topOpportunity = context.opportunities[0];
   const enabledExchanges = context.exchanges.filter((exchange) => context.user.exchanges.includes(exchange.name));
   const liveEnabled = context.mode === "Live";
-  const bestPrediction = [...context.predictions].sort((a, b) => b.confidence - a.confidence)[0];
+  const bestPrediction = [...context.predictions].sort((a, b) => b.confidence - a.confidence)[0] || null;
 
   if (!question.trim()) {
     return agentResponse("Ask me about arbitrage, exchange health, AI signals, risk settings, or app features.", [
@@ -117,6 +117,12 @@ export function askLiveAgent(question, context) {
   }
 
   if (includesAny(prompt, ["btc", "eth", "signal", "prediction", "buy", "sell", "hold", "rsi", "target"])) {
+    if (!bestPrediction) {
+      return agentResponse("Live AI predictions are not available yet.", [
+        "The model needs 100 exchange candles before it can calculate RSI and mean reversion.",
+        "Check the AI Insights screen again after the live candle request completes.",
+      ], ["live candle model"]);
+    }
     const lines = context.predictions.map(
       (prediction) =>
         `${prediction.symbol}: ${prediction.action} with ${prediction.confidence}% confidence, RSI ${prediction.rsi}, target $${prediction.targetPrice.toLocaleString()} over ${prediction.horizon}. ${prediction.suggestion}`
@@ -141,10 +147,11 @@ export function askLiveAgent(question, context) {
   if (includesAny(prompt, ["history", "pnl", "profit", "loss", "trade", "logs", "errors"])) {
     const pnlLines = context.history.map((item) => `${item.id}: ${item.pair}, ${item.pnl}, ${item.result}, ${item.action}.`);
     const logLines = context.logs.slice(0, 3).map((item) => `${item.level} ${item.time} ${item.source}: ${item.message}`);
-    return agentResponse("Recent activity shows positive closed PnL with one stopped SOL route and no unresolved critical outage.", [
-      ...pnlLines,
-      ...logLines,
-    ], ["trade history", "system logs"]);
+    return agentResponse(
+      context.history.length || context.logs.length ? "Here is the activity currently recorded for this workspace." : "No activity has been recorded for this workspace yet.",
+      [...pnlLines, ...logLines, ...(!pnlLines.length && !logLines.length ? ["Place or stage a paper trade to create a MySQL audit record."] : [])],
+      ["trade history", "system logs"]
+    );
   }
 
   return agentResponse("Here is the current market cockpit summary.", [
@@ -152,7 +159,7 @@ export function askLiveAgent(question, context) {
       ? `Best route: ${topOpportunity.pair}, buy ${topOpportunity.buy}, sell ${topOpportunity.sell}, net ${topOpportunity.netSpreadPct.toFixed(3)}%, score ${topOpportunity.score}.`
       : "No current fee-adjusted opportunity is available.",
     `Data mode: ${context.mode}. Source: ${context.source}. Enabled exchanges: ${context.user.exchanges.join(", ")}.`,
-    `Top AI signal: ${bestPrediction.symbol} ${bestPrediction.action}, ${bestPrediction.confidence}% confidence.`,
+    bestPrediction ? `Top AI signal: ${bestPrediction.symbol} ${bestPrediction.action}, ${bestPrediction.confidence}% confidence.` : "Live AI candles are still loading.",
     "Ask about arbitrage, exchange health, live mode, risk settings, predictions, logs, or next features for a narrower answer.",
   ], ["market summary", "settings", "AI predictions"]);
 }

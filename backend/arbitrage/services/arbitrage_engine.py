@@ -1,6 +1,6 @@
 import asyncio
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import ccxt.async_support as ccxt
@@ -29,7 +29,7 @@ class ArbitrageEngine:
         opportunities = self._find_opportunities(tickers)
         return {
             "type": "arbitrage.snapshot",
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "tickers": [ticker.__dict__ for ticker in tickers],
             "opportunities": opportunities,
         }
@@ -56,7 +56,7 @@ class ArbitrageEngine:
                 last=self._float_or_none(ticker.get("last")),
                 quote_volume=self._float_or_none(ticker.get("quoteVolume")),
                 percentage=self._float_or_none(ticker.get("percentage")),
-                timestamp=datetime.now(UTC).isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
             )
         except Exception:
             return None

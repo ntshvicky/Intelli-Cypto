@@ -23,14 +23,14 @@ function CoinSphere({ coin }) {
   );
 }
 
-function GalaxyScene() {
+function GalaxyScene({ coins }) {
   return (
     <>
       <ambientLight intensity={0.55} />
       <pointLight position={[4, 6, 5]} intensity={1.8} color="#38bdf8" />
       <pointLight position={[-6, -2, -3]} intensity={1.2} color="#34d399" />
       <Stars radius={70} depth={32} count={1600} factor={4} saturation={0} fade speed={0.6} />
-      {marketCoins.map((coin) => (
+      {coins.map((coin) => (
         <CoinSphere key={coin.symbol} coin={coin} />
       ))}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.7, 0]}>
@@ -42,12 +42,12 @@ function GalaxyScene() {
   );
 }
 
-export default function MarketGalaxy() {
+export default function MarketGalaxy({ coins = marketCoins }) {
   return (
     <div className="h-[360px] w-full overflow-hidden rounded border border-line bg-slate-950 shadow-glow md:h-[480px]">
       <Canvas camera={{ position: [0, 4.2, 10], fov: 54 }}>
         <Suspense fallback={null}>
-          <GalaxyScene />
+          <GalaxyScene coins={coins} />
         </Suspense>
       </Canvas>
     </div>
