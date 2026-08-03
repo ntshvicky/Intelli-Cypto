@@ -1,9 +1,9 @@
 from dataclasses import dataclass
+from statistics import fmean, pstdev
 
 import asyncio
 
 import ccxt.async_support as ccxt
-import numpy as np
 
 
 @dataclass(frozen=True)
@@ -18,10 +18,10 @@ class CryptoAI:
         if len(prices) < 100:
             raise ValueError("CryptoAI requires at least 100 price points.")
 
-        recent = np.array(prices[-100:], dtype=float)
-        current_price = float(recent[-1])
-        mean_price = float(np.mean(recent))
-        std_price = float(np.std(recent))
+        recent = [float(price) for price in prices[-100:]]
+        current_price = recent[-1]
+        mean_price = fmean(recent)
+        std_price = pstdev(recent)
         rsi = self._rsi(recent)
 
         lower_band = mean_price - std_price
@@ -45,13 +45,13 @@ class CryptoAI:
             "rsi": round(rsi, 2),
         }
 
-    def _rsi(self, prices: np.ndarray, period: int = 14) -> float:
-        deltas = np.diff(prices)
-        gains = np.where(deltas > 0, deltas, 0.0)
-        losses = np.where(deltas < 0, -deltas, 0.0)
+    def _rsi(self, prices: list[float], period: int = 14) -> float:
+        deltas = [current - previous for previous, current in zip(prices, prices[1:])]
+        gains = [delta if delta > 0 else 0.0 for delta in deltas]
+        losses = [-delta if delta < 0 else 0.0 for delta in deltas]
 
-        avg_gain = np.mean(gains[-period:])
-        avg_loss = np.mean(losses[-period:])
+        avg_gain = fmean(gains[-period:])
+        avg_loss = fmean(losses[-period:])
         if avg_loss == 0:
             return 100.0
 
